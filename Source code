@@ -1,0 +1,202 @@
+import matplotlib.pyplot as plt
+import numpy as np
+def createList():
+    global finalList
+    global finalOrder1
+    global finalOrder2
+    global finalRoad
+    finalList = []
+    finalOrder1 = []
+    finalOrder2 = []
+    finalRoad = []
+def createDic():
+    dic = {'A':0,'G':1,'C':2,'T':3}
+    return dic
+def createGrade():
+    grade = np.matrix([[10,-1,-3,-4],
+                       [-1,7,-5,-3],
+                       [-3,-5,9,0],
+                       [-4,-3,0,8]])
+    return grade
+def getGrade(a,b):
+    dic = createDic()
+    grade = createGrade()
+    return grade[dic[a],dic[b]]
+def createMark(s,t,gap):
+    a = len(s)
+    b = len(t)
+    mark = np.zeros((a+1,b+1)) 
+    direction = np.zeros((a+1,b+1,3)) 
+    direction[0][0] = -1
+    mark[0,:] = np.fromfunction(lambda x, y: gap * (x + y), (1, b + 1), dtype=int)
+    mark[:,0] = np.fromfunction(lambda x, y: gap * (x + y), (1, a + 1), dtype=int)
+    for i in range(1,b+1):
+        direction[0,i,0] = 1
+    for i in range(1, a + 1):
+        direction[i, 0, 2] = 1
+    for i in range(1,a+1):
+        for j in range(1,b+1):
+            threeMark = [mark[i][j-1],mark[i-1][j-1],mark[i-1][j]] 
+            threeGrade = [gap,getGrade(s[i-1],t[j-1]),gap] 
+            finalGrade = np.add(threeMark,threeGrade) 
+            mark[i][j] = max(finalGrade) 
+            for k in range(0,len([y for y,x in enumerate(finalGrade) if x == max(finalGrade)])):
+                directionList = [y for y,x in enumerate(finalGrade) if x == max(finalGrade)]
+                direction[i][j][directionList[k]]  = 1
+    return mark,direction
+def remount(mark,direction,i,j,s,t):
+    if direction[i][j][0] == 1 :
+        if direction[i][j-1][0] == -1: 
+            finalList.append(0)
+            finalList.reverse()
+            index1 = 0
+            index2 = 0
+            for k in finalList:
+                if k == 0 :
+                    finalOrder1.append("-")
+                    finalOrder2.append(t[index2])
+                    index2 += 1
+                if k == 1 :
+                    finalOrder1.append(s[index1])
+                    finalOrder2.append(t[index2])
+                    index1 += 1
+                    index2 += 1
+                if k == 2 :
+                    finalOrder1.append(s[index1])
+                    finalOrder2.append("-")
+                    index1 += 1
+            finalList.reverse()
+            finalRoad.append(np.array(finalList))
+            finalList.pop()
+            return
+        else :
+            finalList.append(0)
+            remount(mark,direction,i,j-1,s,t)
+            finalList.pop()
+    if direction[i][j][1] == 1 :
+        if direction[i-1][j-1][0] == -1:
+            finalList.append(1)
+            finalList.reverse()
+            index1 = 0
+            index2 = 0
+            for k in finalList:
+                if k == 0 :
+                    finalOrder1.append("-")
+                    finalOrder2.append(t[index2])
+                    index2 += 1
+                if k == 1 :
+                    finalOrder1.append(s[index1])
+                    finalOrder2.append(t[index2])
+                    index1 += 1
+                    index2 += 1
+                if k == 2 :
+                    finalOrder1.append(s[index1])
+                    finalOrder2.append("-")
+                    index1 += 1
+            finalList.reverse()
+            finalRoad.append(np.array(finalList))
+            finalList.pop()
+            return
+        else :
+            finalList.append(1)
+            remount(mark,direction,i-1,j-1,s,t)
+            finalList.pop()
+    if direction[i][j][2] == 1 :
+        if direction[i-1][j][0] == -1:
+            finalList.append(2)
+            finalList.reverse()
+            index1 = 0
+            index2 = 0
+            for k in finalList:
+                if k == 0 :
+                    finalOrder1.append("-")
+                    finalOrder2.append(t[index2])
+                    index2 += 1
+                if k == 1 :
+                    finalOrder1.append(s[index1])
+                    finalOrder2.append(t[index2])
+                    index1 += 1
+                    index2 += 1
+                if k == 2 :
+                    finalOrder1.append(s[index1])
+                    finalOrder2.append("-")
+                    index1 += 1
+            finalList.reverse()
+            finalRoad.append(np.array(finalList))
+            finalList.pop()
+            return
+        else :
+            finalList.append(2)
+            remount(mark,direction,i-1,j,s,t)
+            finalList.pop()
+def arrow(ax,sX,sY,aX,aY):
+    ax.arrow(sX,sY,aX,aY,length_includes_head=True, head_width=0.15, head_length=0.25, fc='w', ec='b')
+def drawArrow(mark, direction, a, b, s, t):
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    val_ls = range(a+2)
+    scale_ls = range(b+2)
+    index_ls = []
+    index_lsy = []
+    for i in range(a):
+        if i == 0:
+            index_lsy.append('#')
+        index_lsy.append(s[a-i-1])
+    index_lsy.append('0')
+    for i in range(b):
+        if i == 0:
+            index_ls.append('#')
+            index_ls.append('0')
+        index_ls.append(t[i])
+    plt.xticks(scale_ls, index_ls)
+    plt.yticks(val_ls, index_lsy)
+    for k in range(1,a+2):
+        y = [k for i in range(0,b+1)]
+        x = [x for x in range(1,b+2)]
+        ax.scatter(x, y, c='y')
+    for i in range(1,a+2):
+        for j in range(1,b+2):
+            ax.text(j,a+2-i,int(mark[i-1][j-1]))
+    lX = b+1
+    lY = 1
+    for n in range(0,len(finalRoad)):
+        for m in (finalRoad[n]):
+            if m == 0:
+                arrow(ax,lX,lY,-1,0)
+                lX = lX - 1
+            elif m == 1:
+                arrow(ax,lX,lY,-1,1)
+                lX = lX - 1
+                lY = lY + 1
+            elif m == 2:
+                arrow(ax, lX, lY, 0, 1)
+                lY = lY + 1
+        lX = b + 1
+        lY = 1
+    ax.set_xlim(0, b + 2)
+    ax.set_ylim(0, a + 2)
+    ax.set_aspect('equal')
+    plt.show()
+    plt.tight_layout()
+if __name__ == '__main__':
+    createList()
+    print("Please enter gap:")
+    gap = int(input())
+    print("Please enter sequence 1:")
+    s = input()
+    print("Please enter sequence 2:")
+    t = input()
+    a = len(s)
+    b = len(t)
+    mark,direction = createMark(s,t,gap)
+    print("The scoring matrix is as follows：") 
+    print(mark)
+    remount(mark,direction,a,b,s,t)
+    c = a if a > b else b
+    total = int(len(finalOrder1)/c)
+    for i in range(1,total+1): 
+        k = str(i)
+        print("Sequence alignment results "+k+" is：")
+        print(finalOrder1[(i-1)*c:i*c])
+        print(finalOrder2[(i-1)*c:i*c])
+    drawArrow(mark, direction, a, b, s, t)
